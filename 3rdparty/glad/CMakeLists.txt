@@ -1,5 +1,8 @@
-set(target glad)
-
-addLibrary(${target})
-
-add_library(glad::glad ALIAS glad)
+add_library(glad::glad STATIC IMPORTED GLOBAL)
+set_target_properties(
+    glad::glad
+    PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/lib/glad.lib"
+    IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+)

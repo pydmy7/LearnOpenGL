@@ -11,7 +11,5 @@ project(
     VERSION 0.1.0
 )
 
-include(cmake/addtarget.cmake)
-
 add_subdirectory(3rdparty)
 add_subdirectory(test)
