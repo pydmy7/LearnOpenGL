@@ -1,0 +1,8 @@
+add_library(stb::image STATIC IMPORTED GLOBAL)
+set_target_properties(
+    stb::image
+    PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/lib/stb_image.lib"
+    IMPORTED_LINK_INTERFACE_LANGUAGES "C"
+)
