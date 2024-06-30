@@ -22,7 +22,8 @@ public:
 
     void use();
 
-    void setValueFloat(const std::string& name, float value);
+    void setValueFloat(const std::string& name, GLfloat value);
+    void setValueInt(const std::string& name, GLint value);
 
 private:
     void checkError(GLuint shaderid, ShaderStage stage);

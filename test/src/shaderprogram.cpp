@@ -42,9 +42,14 @@ void ShaderProgram::use() {
     glUseProgram(this->shaderprogramid);
 }
 
-void ShaderProgram::setValueFloat(const std::string& name, float value) {
+void ShaderProgram::setValueFloat(const std::string& name, GLfloat value) {
     this->use();
-    glUniform1f(glGetUniformLocation(this->shaderprogramid, name.c_str()), value); 
+    glUniform1f(glGetUniformLocation(this->shaderprogramid, name.c_str()), value);
+}
+
+void ShaderProgram::setValueInt(const std::string& name, GLint value) {
+    this->use();
+    glUniform1i(glGetUniformLocation(this->shaderprogramid, name.c_str()), value);
 }
 
 void ShaderProgram::checkError(GLuint shaderid, ShaderStage stage) {

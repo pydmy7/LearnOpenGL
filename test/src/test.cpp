@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <stb/stb_image.h>
 
 #include "config.h"
 #include "test/shaderprogram.hpp"
@@ -10,11 +11,12 @@
 #include <array>
 #include <string>
 
-const std::filesystem::path projectroot {SOURCE_DIR};
-const std::filesystem::path shaderdir {projectroot / "shader"};
-const std::filesystem::path shadervertfile {shaderdir / "shader.vert"};
-const std::filesystem::path orangefragfile {shaderdir / "orange.frag"};
-const std::filesystem::path yellowfragfile {shaderdir / "yellow.frag"};
+namespace fs = std::filesystem;
+
+const fs::path projectroot {SOURCE_DIR};
+const fs::path shaderdir {projectroot / "shader"};
+const fs::path texturevs {shaderdir / "texture.vs"};
+const fs::path texturefs {shaderdir / "texture.fs"};
 
 void initGlfw() {
     if (!glfwInit()) {
@@ -52,70 +54,128 @@ int main() {
     }
     std::clog << "OpenGL Version: " << glGetString(GL_VERSION) << '\n';
 
-    std::array<ShaderProgram, 2> shaderprograms {
-        ShaderProgram{shadervertfile, orangefragfile},
-        ShaderProgram{shadervertfile, yellowfragfile},
-    };
-    shaderprograms[0].setValueFloat("dx", 0.5);
-    shaderprograms[1].setValueFloat("dy", 0.5);
-
     // ***********************************************************
 
-    std::array<GLfloat, 3 * 3> vertices0 {
-        -0.9f, -0.5f, 0.0f,  // left 
-        -0.0f, -0.5f, 0.0f,  // right
-        -0.45f, 0.5f, 0.0f,  // top 
+    std::array<ShaderProgram, 1> shaderprograms {
+        ShaderProgram{texturevs, texturefs}
     };
 
-    std::array<GLfloat, 3 * 3> vertices1 {
-        0.0f, -0.5f, 0.0f,  // left
-        0.9f, -0.5f, 0.0f,  // right
-        0.45f, 0.5f, 0.0f   // top
-    };
-
-    std::array<GLuint, 2> VAO, VBO;
+    std::array<GLuint, 1> VAO, VBO, EBO;
     {
         glGenVertexArrays(VAO.size(), VAO.data());
         glGenBuffers(VBO.size(), VBO.data());
+        glGenBuffers(EBO.size(), EBO.data());
+
+        std::array<GLfloat, 32> vertices {
+            // positions          // colors           // texture coords
+            0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
+            0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
+            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
+            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left
+        };
+
+        std::array<GLuint, 6> indices {
+            0, 1, 3, // first triangle
+            1, 2, 3  // second triangle
+        };
         
         // 0
-        glBindVertexArray(VAO[0]);
+        {
+            glBindVertexArray(VAO[0]);
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices0), vertices0.data(), GL_STATIC_DRAW);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices.data(), GL_STATIC_DRAW);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-        glEnableVertexAttribArray(0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices.data(), GL_STATIC_DRAW);
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+            // position attribute
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                8 * sizeof(float), reinterpret_cast<GLvoid*>(0));
+            glEnableVertexAttribArray(0);
+            // color attribute
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                8 * sizeof(float), reinterpret_cast<GLvoid*>(3 * sizeof(float)));
+            glEnableVertexAttribArray(1);
+            // texture coord attribute
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
+                8 * sizeof(float), reinterpret_cast<GLvoid*>(6 * sizeof(float)));
+            glEnableVertexAttribArray(2);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+        }
+        // 0
+    }
+
+    std::array<GLuint, 2> textures;
+    {
+        glGenTextures(textures.size(), textures.data());
+
+        // 0
+        {
+            glBindTexture(GL_TEXTURE_2D, textures[0]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            int width, height, nrChannels;
+            stbi_set_flip_vertically_on_load(true);
+            unsigned char *data = stbi_load("resources/textures/container.jpg",
+                &width, &height, &nrChannels, 0);
+            if (data) {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
+                    width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+                glGenerateMipmap(GL_TEXTURE_2D);
+            } else {
+                std::cerr << "Failed to load texture" << std::endl;
+            }
+            stbi_image_free(data);
+        }
         // 0
 
         // 1
-        glBindVertexArray(VAO[1]);
+        {
+            glBindTexture(GL_TEXTURE_2D, textures[1]);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices1), vertices1.data(), GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-        glEnableVertexAttribArray(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+            int width, height, nrChannels;
+            stbi_set_flip_vertically_on_load(true);
+            unsigned char *data = stbi_load("resources/textures/awesomeface.png",
+                &width, &height, &nrChannels, 0);
+            if (data) {
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                    width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+                glGenerateMipmap(GL_TEXTURE_2D);
+            } else {
+                std::cout << "Failed to load texture" << std::endl;
+            }
+            stbi_image_free(data);
+        }
         // 1
     }
+
+    shaderprograms[0].setValueInt("texture0", 0);
+    shaderprograms[0].setValueInt("texture1", 1);
 
     auto render = [&]() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textures[0]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, textures[1]);
+
         shaderprograms[0].use();
         glBindVertexArray(VAO[0]);
-        glDrawArrays(GL_TRIANGLES, 0, vertices0.size() / 3);
-        
-        shaderprograms[1].use();
-        glBindVertexArray(VAO[1]);
-        glDrawArrays(GL_TRIANGLES, 0, vertices1.size() / 3);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     };
 
     // ***********************************************************
@@ -129,8 +189,9 @@ int main() {
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(2, VAO.data());
-    glDeleteBuffers(2, VBO.data());
+    glDeleteVertexArrays(VAO.size(), VAO.data());
+    glDeleteBuffers(VBO.size(), VBO.data());
+    glDeleteBuffers(EBO.size(), EBO.data());
 
     glfwTerminate();
 
