@@ -4,6 +4,7 @@
 #include "util/util.hpp"
 
 #include <iostream>
+#include <malloc.h>
 
 
 ShaderProgram::ShaderProgram(const std::filesystem::path& vertexpath, const std::filesystem::path& fragmentpath) {
@@ -27,6 +28,8 @@ ShaderProgram::ShaderProgram(const std::filesystem::path& vertexpath, const std:
     glAttachShader(shaderprogram, fragmentshader);
     glLinkProgram(shaderprogram);
     checkError(shaderprogram, ShaderStage::program);
+
+    glValidateProgram(shaderprogram);
     
     glDeleteShader(vertexshader);
     glDeleteShader(fragmentshader);
@@ -42,6 +45,10 @@ void ShaderProgram::use() {
     glUseProgram(this->shaderprogramid);
 }
 
+GLuint ShaderProgram::getShaderProgramId() const {
+    return this->shaderprogramid;
+};
+
 void ShaderProgram::setValueFloat(const std::string& name, GLfloat value) {
     this->use();
     glUniform1f(glGetUniformLocation(this->shaderprogramid, name.c_str()), value);
@@ -56,29 +63,31 @@ void ShaderProgram::checkError(GLuint shaderid, ShaderStage stage) {
     if (stage == ShaderStage::vertex) {
         GLint success {};
         glGetShaderiv(shaderid, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            const GLint bufsize {512};
-            GLchar infolog[bufsize] {};
-            glGetShaderInfoLog(shaderid, bufsize, nullptr, infolog);
+        if (success == GL_FALSE) {
+            GLint length;
+            glGetShaderiv(shaderid, GL_INFO_LOG_LENGTH, &length);
+            GLchar* infolog {static_cast<GLchar*>(alloca(length * sizeof(GLchar)))};
+            glGetShaderInfoLog(shaderid, length, nullptr, infolog);
             std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infolog << std::endl;
         }
     } else if (stage == ShaderStage::fragment) {
         GLint success {};
         glGetShaderiv(shaderid, GL_COMPILE_STATUS, &success);
-        if (!success)
-        {
-            const GLint bufsize {512};
-            GLchar infolog[bufsize] {};
-            glGetShaderInfoLog(shaderid, bufsize, nullptr, infolog);
+        if (success == GL_FALSE) {
+            GLint length;
+            glGetShaderiv(shaderid, GL_INFO_LOG_LENGTH, &length);
+            GLchar* infolog {static_cast<GLchar*>(alloca(length * sizeof(GLchar)))};
+            glGetShaderInfoLog(shaderid, length, nullptr, infolog);
             std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infolog << std::endl;
         }
     } else {
         GLint success {};
         glGetProgramiv(shaderid, GL_LINK_STATUS, &success);
-        if (!success) {
-            const GLint bufsize {512};
-            char infolog[bufsize] {};
-            glGetProgramInfoLog(shaderid, bufsize, nullptr, infolog);
+        if (success == GL_FALSE) {
+            GLint length;
+            glGetShaderiv(shaderid, GL_INFO_LOG_LENGTH, &length);
+            GLchar* infolog {static_cast<GLchar*>(alloca(length * sizeof(GLchar)))};
+            glGetProgramInfoLog(shaderid, length, nullptr, infolog);
             std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infolog << std::endl;
         }
     }

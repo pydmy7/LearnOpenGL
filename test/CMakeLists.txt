@@ -1,5 +1,5 @@
 addExecutable(test)
-target_link_libraries(test PRIVATE glad::glad glfw::glfw util::util stb::image)
+target_link_libraries(test PRIVATE glad::glad glfw::glfw util::util stb::image interface_glm)
 
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/include/test/config.h.in"

@@ -1,9 +1,13 @@
+#include "config.h"
+
+#include "test/shaderprogram.hpp"
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
-
-#include "config.h"
-#include "test/shaderprogram.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <stdexcept>
 #include <iostream>
@@ -11,12 +15,15 @@
 #include <array>
 #include <string>
 
+
 namespace fs = std::filesystem;
+
 
 const fs::path projectroot {SOURCE_DIR};
 const fs::path shaderdir {projectroot / "shader"};
 const fs::path texturevs {shaderdir / "texture.vs"};
 const fs::path texturefs {shaderdir / "texture.fs"};
+
 
 void initGlfw() {
     if (!glfwInit()) {
@@ -66,12 +73,12 @@ int main() {
         glGenBuffers(VBO.size(), VBO.data());
         glGenBuffers(EBO.size(), EBO.data());
 
-        std::array<GLfloat, 32> vertices {
-            // positions          // colors           // texture coords
-            0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f, // top right
-            0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f, // bottom right
-            -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f, // bottom left
-            -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f  // top left
+        std::array<GLfloat, 20> vertices {
+            // positions          // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
+         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
+        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
         };
 
         std::array<GLuint, 6> indices {
@@ -91,20 +98,12 @@ int main() {
 
             // position attribute
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                8 * sizeof(float), reinterpret_cast<GLvoid*>(0));
+                5 * sizeof(float), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
-            // color attribute
-            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                8 * sizeof(float), reinterpret_cast<GLvoid*>(3 * sizeof(float)));
-            glEnableVertexAttribArray(1);
             // texture coord attribute
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
-                8 * sizeof(float), reinterpret_cast<GLvoid*>(6 * sizeof(float)));
-            glEnableVertexAttribArray(2);
-
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            glBindVertexArray(0);
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+                5 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+            glEnableVertexAttribArray(1);
         }
         // 0
     }
@@ -116,10 +115,10 @@ int main() {
         // 0
         {
             glBindTexture(GL_TEXTURE_2D, textures[0]);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             int width, height, nrChannels;
             stbi_set_flip_vertically_on_load(true);
@@ -139,17 +138,17 @@ int main() {
         // 1
         {
             glBindTexture(GL_TEXTURE_2D, textures[1]);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);	
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
             int width, height, nrChannels;
             stbi_set_flip_vertically_on_load(true);
             unsigned char *data = stbi_load("resources/textures/awesomeface.png",
                 &width, &height, &nrChannels, 0);
             if (data) {
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
                     width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
                 glGenerateMipmap(GL_TEXTURE_2D);
             } else {
@@ -172,9 +171,16 @@ int main() {
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, textures[1]);
 
+        // create transformations
+        glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+        transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
+        transform = glm::rotate(transform, static_cast<GLfloat>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
+
         shaderprograms[0].use();
+        unsigned int transformLoc = glGetUniformLocation(shaderprograms[0].getShaderProgramId(), "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
         glBindVertexArray(VAO[0]);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     };
 
