@@ -3,6 +3,7 @@
 
 #include "util/util.hpp"
 
+#include <cstdint>
 #include <iostream>
 #include <malloc.h>
 
@@ -11,19 +12,19 @@ ShaderProgram::ShaderProgram(const std::filesystem::path& vertexpath, const std:
     const std::string vertexshadersource {util::readFileToString(vertexpath)};
     const std::string fragmentshadersource {util::readFileToString(fragmentpath)};
 
-    GLuint vertexshader = glCreateShader(GL_VERTEX_SHADER);
+    uint32_t vertexshader = glCreateShader(GL_VERTEX_SHADER);
     const char* vertexshadersourcecstr = vertexshadersource.c_str();
     glShaderSource(vertexshader, 1, &vertexshadersourcecstr, nullptr);
     glCompileShader(vertexshader);
     checkError(vertexshader, ShaderStage::vertex);
 
-    GLuint fragmentshader = glCreateShader(GL_FRAGMENT_SHADER);
+    uint32_t fragmentshader = glCreateShader(GL_FRAGMENT_SHADER);
     const char* fragmentshadersourcecstr = fragmentshadersource.c_str();
     glShaderSource(fragmentshader, 1, &fragmentshadersourcecstr, nullptr);
     glCompileShader(fragmentshader);
     checkError(fragmentshader, ShaderStage::fragment);
 
-    GLuint shaderprogram = glCreateProgram();
+    uint32_t shaderprogram = glCreateProgram();
     glAttachShader(shaderprogram, vertexshader);
     glAttachShader(shaderprogram, fragmentshader);
     glLinkProgram(shaderprogram);
@@ -41,50 +42,50 @@ ShaderProgram::~ShaderProgram() {
     glDeleteProgram(this->shaderprogramid);
 }
 
-void ShaderProgram::use() {
+void ShaderProgram::use() const {
     glUseProgram(this->shaderprogramid);
 }
 
-GLuint ShaderProgram::getShaderProgramId() const {
+uint32_t ShaderProgram::getShaderProgramId() const {
     return this->shaderprogramid;
 };
 
-void ShaderProgram::setValueFloat(const std::string& name, GLfloat value) {
+void ShaderProgram::setValueFloat(const std::string& name, float_t value) const {
     this->use();
     glUniform1f(glGetUniformLocation(this->shaderprogramid, name.c_str()), value);
 }
 
-void ShaderProgram::setValueInt(const std::string& name, GLint value) {
+void ShaderProgram::setValueInt(const std::string& name, int32_t value) const {
     this->use();
     glUniform1i(glGetUniformLocation(this->shaderprogramid, name.c_str()), value);
 }
 
-void ShaderProgram::checkError(GLuint shaderid, ShaderStage stage) {
+void ShaderProgram::checkError(uint32_t shaderid, ShaderStage stage) const {
     if (stage == ShaderStage::vertex) {
-        GLint success {};
+        int32_t success {};
         glGetShaderiv(shaderid, GL_COMPILE_STATUS, &success);
         if (success == GL_FALSE) {
-            GLint length;
+            int32_t length;
             glGetShaderiv(shaderid, GL_INFO_LOG_LENGTH, &length);
             GLchar* infolog {static_cast<GLchar*>(alloca(length * sizeof(GLchar)))};
             glGetShaderInfoLog(shaderid, length, nullptr, infolog);
             std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infolog << std::endl;
         }
     } else if (stage == ShaderStage::fragment) {
-        GLint success {};
+        int32_t success {};
         glGetShaderiv(shaderid, GL_COMPILE_STATUS, &success);
         if (success == GL_FALSE) {
-            GLint length;
+            int32_t length;
             glGetShaderiv(shaderid, GL_INFO_LOG_LENGTH, &length);
             GLchar* infolog {static_cast<GLchar*>(alloca(length * sizeof(GLchar)))};
             glGetShaderInfoLog(shaderid, length, nullptr, infolog);
             std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infolog << std::endl;
         }
     } else {
-        GLint success {};
+        int32_t success {};
         glGetProgramiv(shaderid, GL_LINK_STATUS, &success);
         if (success == GL_FALSE) {
-            GLint length;
+            int32_t length;
             glGetShaderiv(shaderid, GL_INFO_LOG_LENGTH, &length);
             GLchar* infolog {static_cast<GLchar*>(alloca(length * sizeof(GLchar)))};
             glGetProgramInfoLog(shaderid, length, nullptr, infolog);

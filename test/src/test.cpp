@@ -67,13 +67,13 @@ int main() {
         ShaderProgram{texturevs, texturefs}
     };
 
-    std::array<GLuint, 1> VAO, VBO, EBO;
+    std::array<uint32_t, 1> VAO, VBO, EBO;
     {
         glGenVertexArrays(VAO.size(), VAO.data());
         glGenBuffers(VBO.size(), VBO.data());
         glGenBuffers(EBO.size(), EBO.data());
 
-        std::array<GLfloat, 20> vertices {
+        std::array<float_t, 20> vertices {
             // positions          // texture coords
          0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
          0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
@@ -81,7 +81,7 @@ int main() {
         -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
         };
 
-        std::array<GLuint, 6> indices {
+        std::array<uint32_t, 6> indices {
             0, 1, 3, // first triangle
             1, 2, 3  // second triangle
         };
@@ -98,17 +98,17 @@ int main() {
 
             // position attribute
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                5 * sizeof(float), reinterpret_cast<void*>(0));
+                5 * sizeof(float_t), reinterpret_cast<void*>(0));
             glEnableVertexAttribArray(0);
             // texture coord attribute
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
-                5 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+                5 * sizeof(float_t), reinterpret_cast<void*>(3 * sizeof(float_t)));
             glEnableVertexAttribArray(1);
         }
         // 0
     }
 
-    std::array<GLuint, 2> textures;
+    std::array<uint32_t, 2> textures;
     {
         glGenTextures(textures.size(), textures.data());
 
@@ -174,7 +174,7 @@ int main() {
         // create transformations
         glm::mat4 transform = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
         transform = glm::translate(transform, glm::vec3(0.5f, -0.5f, 0.0f));
-        transform = glm::rotate(transform, static_cast<GLfloat>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
+        transform = glm::rotate(transform, static_cast<float_t>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
 
         shaderprograms[0].use();
         unsigned int transformLoc = glGetUniformLocation(shaderprograms[0].getShaderProgramId(), "transform");

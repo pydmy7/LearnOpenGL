@@ -18,12 +18,13 @@ public:
     ShaderProgram(const std::filesystem::path& vertexpath, const std::filesystem::path& fragmentpath);
     ~ShaderProgram();
 
-    void use();
-    GLuint getShaderProgramId() const;
-    void setValueFloat(const std::string& name, GLfloat value);
-    void setValueInt(const std::string& name, GLint value);
+    void use() const;
+    uint32_t getShaderProgramId() const;
+    void setValueFloat(const std::string& name, GLfloat value) const;
+    void setValueInt(const std::string& name, GLint value) const;
 
 private:
-    GLuint shaderprogramid;
-    void checkError(GLuint shaderid, ShaderStage stage);
+    uint32_t shaderprogramid;
+    
+    void checkError(uint32_t shaderid, ShaderStage stage) const;
 };
